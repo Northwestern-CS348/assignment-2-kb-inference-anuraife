@@ -128,7 +128,30 @@ class KnowledgeBase(object):
         printv("Retracting {!r}", 0, verbose, [fact_or_rule])
         ####################################################
         # Student code goes here
-        
+        if isinstance(fact_or_rule, Fact):
+            fact = self._get_fact(fact_or_rule)
+            supportedby = fact.supported_by
+            supports = fact.supports_facts + fact.supports_rules
+            if not supportedby:
+                self.facts.remove(fact)
+            else:
+                fact.asserted = False
+            for fr in supports:
+                fr.supported_by.pop()
+                fr.supported_by.pop()
+                if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
+                    self.kb_retract(fr)
+        elif isinstance(fact_or_rule, Rule):
+            rule = self._get_rule(fact_or_rule)
+            supportedby = rule.supported_by
+            supports = rule.supports_facts + rule.supports_rules
+            if not rule.asserted:
+                self.rules.remove(rule)
+                for fr in supports:
+                    fr.supported_by.pop()
+                    fr.supported_by.pop()
+                    if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
+                        self.kb_retract(fr)
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
@@ -146,3 +169,26 @@ class InferenceEngine(object):
             [fact.statement, rule.lhs, rule.rhs])
         ####################################################
         # Student code goes here
+        bindings = match(fact.statement, rule.lhs[0])
+        lhs_states = []
+        
+        if bindings:
+            rhs_state = instantiate(rule.rhs, bindings)
+            
+            for state in rule.lhs[1:]:
+                lhs_state = instantiate(state, bindings)
+                lhs_states.append(lhs_state)
+            
+            if not lhs_states:
+                newfact = Fact(rhs_state, [fact, rule])
+                fact.supports_facts.append(newfact)
+                rule.supports_facts.append(newfact)
+                kb.kb_assert(newfact)
+            else:
+                newrule = Rule([lhs_states, rhs_state], [fact, rule])
+                fact.supports_rules.append(newrule)
+                rule.supports_rules.append(newrule)
+                kb.kb_assert(newrule)
+
+                
+        

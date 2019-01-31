@@ -66,7 +66,7 @@ def instantiate(statement, bindings):
     Args:
         statement (Statement): statement to generate new statement from
         bindings (Bindings): bindings to substitute into statement
-    """
+    """            
     def handle_term(term):
         if is_var(term):
             bound_value = bindings.bound_to(term.term)

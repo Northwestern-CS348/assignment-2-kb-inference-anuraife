@@ -129,27 +129,30 @@ class KnowledgeBase(object):
         ####################################################
         # Student code goes here
         if isinstance(fact_or_rule, Fact):
-            fact = self._get_fact(fact_or_rule)
+            ind = self.facts.index(fact_or_rule)
+            fact = self.facts[ind]
             supportedby = fact.supported_by
             supports = fact.supports_facts + fact.supports_rules
+            for fr in supports:
+                fr.supported_by.remove(fact)
+                for support in fr.supported_by:
+                    if isinstance(support,Rule) and match(support.lhs[0],fact.statement):
+                        fr.supported_by.remove(support)
+                if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
+                    self.kb_retract(fr)
             if not supportedby:
                 self.facts.remove(fact)
             else:
                 fact.asserted = False
-            for fr in supports:
-                fr.supported_by.pop()
-                fr.supported_by.pop()
-                if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
-                    self.kb_retract(fr)
         elif isinstance(fact_or_rule, Rule):
-            rule = self._get_rule(fact_or_rule)
+            ind = self.rules.index(fact_or_rule)
+            rule = self.rules[ind]
             supportedby = rule.supported_by
             supports = rule.supports_facts + rule.supports_rules
             if not rule.asserted:
                 self.rules.remove(rule)
                 for fr in supports:
-                    fr.supported_by.pop()
-                    fr.supported_by.pop()
+                    fr.supported_by.remove(rule)
                     if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
                         self.kb_retract(fr)
 

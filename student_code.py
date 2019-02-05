@@ -128,33 +128,34 @@ class KnowledgeBase(object):
         printv("Retracting {!r}", 0, verbose, [fact_or_rule])
         ####################################################
         # Student code goes here
-        if isinstance(fact_or_rule, Fact):
+        if isinstance(fact_or_rule, Fact) and fact_or_rule in self.facts:
             ind = self.facts.index(fact_or_rule)
             fact = self.facts[ind]
             supportedby = fact.supported_by
             supports = fact.supports_facts + fact.supports_rules
-            for fr in supports:
-                fr.supported_by.remove(fact)
-                for support in fr.supported_by:
-                    if isinstance(support,Rule) and match(support.lhs[0],fact.statement):
-                        fr.supported_by.remove(support)
-                if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
-                    self.kb_retract(fr)
-            if not supportedby:
-                self.facts.remove(fact)
-            else:
+            if supportedby:
                 fact.asserted = False
-        elif isinstance(fact_or_rule, Rule):
+            else:
+                for fr in supports:
+                    for pair in fr.supported_by:
+                        if fact in pair:
+                            fr.supported_by.remove(pair)
+                    if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
+                        self.kb_retract(fr)
+                self.facts.remove(fact)
+        elif isinstance(fact_or_rule, Rule) and fact_or_rule in self.rules:
             ind = self.rules.index(fact_or_rule)
             rule = self.rules[ind]
             supportedby = rule.supported_by
             supports = rule.supports_facts + rule.supports_rules
-            if not rule.asserted:
-                self.rules.remove(rule)
+            if not rule.asserted and not supportedby:
                 for fr in supports:
-                    fr.supported_by.remove(rule)
+                    for pair in fr.supported_by:
+                        if rule in pair:
+                            fr.supported_by.remove(pair)
                     if isinstance(fr, Fact) or (isinstance(fr, Rule) and not fr.asserted):
                         self.kb_retract(fr)
+                self.rules.remove(rule)
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
@@ -174,7 +175,6 @@ class InferenceEngine(object):
         # Student code goes here
         bindings = match(fact.statement, rule.lhs[0])
         lhs_states = []
-        
         if bindings:
             rhs_state = instantiate(rule.rhs, bindings)
             
@@ -182,13 +182,13 @@ class InferenceEngine(object):
                 lhs_state = instantiate(state, bindings)
                 lhs_states.append(lhs_state)
             
-            if not lhs_states:
-                newfact = Fact(rhs_state, [fact, rule])
+            if len(rule.lhs) == 1:
+                newfact = Fact(rhs_state, [[fact,rule]])
                 fact.supports_facts.append(newfact)
                 rule.supports_facts.append(newfact)
                 kb.kb_assert(newfact)
             else:
-                newrule = Rule([lhs_states, rhs_state], [fact, rule])
+                newrule = Rule([lhs_states, rhs_state], [[fact,rule]])
                 fact.supports_rules.append(newrule)
                 rule.supports_rules.append(newrule)
                 kb.kb_assert(newrule)

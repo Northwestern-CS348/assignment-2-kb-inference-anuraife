@@ -2,7 +2,6 @@ fact: (motherof ada bing)
 fact: (motherof bing chen)
 fact: (motherof dolores chen)
 fact: (sisters ada eva)
-fact: (grandmotherof ada felix)
 fact: (motherof greta felix)
 
 rule: ((motherof ?x ?y)) -> (parentof ?x ?y)
